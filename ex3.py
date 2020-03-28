@@ -24,7 +24,7 @@ coords = [(round(screenSize[0]/2 + radius*math.cos(math.radians(90+n*angle))),
 a = list(itertools.permutations(coords))  # all permutation of coordinates
 
 # a = [(100, 300), (200, 60), (300, 300), (75, 150), (325, 150), (100, 300)]
-# # pygame.draw.polygon(background, (0,180,0), ((100, 300), (200, 60), (300, 300), (75, 150), (325, 150)))  # by using polygon
+# # pygame.draw.polygon(background, (0,180,0), ((100, 300), (200, 60), (300, 300), (75, 150), (325, 150)), 1)  # by using polygon
 # for i in range(1, len(a)):
 #     pygame.draw.line(background, (255,255,255), a[i-1], a[i], 1)
 
