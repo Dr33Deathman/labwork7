@@ -15,7 +15,7 @@ background = background.convert()       # just copy new background into new vari
 
 
 # just simple math :DDDDDDD
-vertices = 15
+vertices = 17
 angle = 360 / vertices  # angle for 1 vertice
 radius = round(screenSize[1]/2 - 20)  # radius of pentagram
 coords = [(round(screenSize[0]/2 + radius*math.cos(math.radians(90+n*angle))),
@@ -31,7 +31,7 @@ coords = [(round(screenSize[0]/2 + radius*math.cos(math.radians(90+n*angle))),
 
 for j in range(0, len(coords)):     # More faster algorithm
     for i in range(0, len(coords)):
-        pygame.draw.line(background, (102, 0, 0), coords[i], coords[j])
+        pygame.draw.line(background, (102, 0, 0), coords[i], coords[j], 4)
 
 # for i in a:  # Draw all permutations
 #     for j in range(1, len(i)):
