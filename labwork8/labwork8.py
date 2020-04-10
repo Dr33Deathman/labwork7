@@ -14,6 +14,7 @@ background = background.convert()            # just copy new background into new
 circle_x = screen_size[0]//2 # start in center of your screen
 circle_y = screen_size[1]//2        
 
+ball_speed = 20
 radius = 25 # our ball radius
 FPS = 60 # desired framerate in frames per second. 
 clock = pygame.time.Clock() # Initializing clock for usin specific frame 
@@ -34,28 +35,28 @@ while running:  # infinite cicle that make windown does't close
             # version with 1 press == 1 move
 
             # if event.key == pygame.K_RIGHT and circle_x + radius < screen_size[0]:   # Checking pressed button and screen borders for moving ball
-            #     circle_x += radius        # move to the right
+            #     circle_x += ball_speed        # move to the right
             # if event.key == pygame.K_LEFT and circle_x > radius:
-            #     circle_x -= radius        # move to the left
+            #     circle_x -= ball_speed        # move to the left
             # if event.key == pygame.K_UP and circle_y > radius:
-            #     circle_y -= radius        # goin up
+            #     circle_y -= ball_speed        # goin up
             # if event.key == pygame.K_DOWN and circle_y + radius < screen_size[1]: 
-            #     circle_y += radius        # goin down
+            #     circle_y += ball_speed        # goin down
 
 
     # version whith holding pressed key
 
     keys = pygame.key.get_pressed() # grab all pressed keys
     # it return tuple with in information, which keys are pressed
-    
+
     if keys[pygame.K_RIGHT] and circle_x + radius < screen_size[0]: # Checking pressed button and screen borders for moving ball
-        circle_x += radius      # move to the right
+        circle_x += ball_speed      # move to the right
     if keys[pygame.K_LEFT] and circle_x > radius:
-        circle_x -= radius      # move to the left
+        circle_x -= ball_speed      # move to the left
     if keys[pygame.K_UP] and circle_y > radius:
-        circle_y -= radius      # goin up
+        circle_y -= ball_speed      # goin up
     if keys[pygame.K_DOWN] and circle_y + radius < screen_size[1]:
-        circle_y += radius      # goin down
+        circle_y += ball_speed      # goin down
 
 
     screen.blit(background, (0, 0)) # draw our background
