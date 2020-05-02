@@ -1,5 +1,5 @@
-from enum import Enum
 from threading import Thread
+from lib import Button, screen, screen_height, screen_width, Direction
 import pygame
 import random
 import pymongo
@@ -7,12 +7,13 @@ import colorsys
 import os
 
 pygame.init()
-screen_width = 800
-screen_height = 640
-screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
 FPS = 60
-
+buttons = []
+level = []
+walls = []
+if_no_level = ""
+selected_level = "Nothing"
 pygame.display.set_caption("Пажылые танки")
 ################################
 # FLAG
@@ -26,12 +27,19 @@ wall_brick = pygame.image.load('assets/img/wall_brick.png')
 wall_plank = pygame.image.load('assets/img/wall_plank.png')
 tank_base_0 = pygame.image.load('assets/img/tank_base_1.png')
 tank_base_1 = pygame.image.load('assets/img/tank_base_2.png')
-
-
 ################################
 
 ###############################
 # pymongo
+
+
+def db_level_click(name, cur_level):
+    global level, selected_level
+    for i in range(len(mongo_client.levels)):
+        if mongo_client.levels[i]['name'] == name:
+            level = mongo_client.levels[i]['level']
+            selected_level = name
+            return
 
 
 class MongoClient(Thread):
@@ -45,12 +53,15 @@ class MongoClient(Thread):
         for i in col.find({}, {'_id': 0}):
             self.levels.append(i)
 
-        # print(self.levels)
+        for i in range(len(mongo_client.levels)):
+            name = mongo_client.levels[i]['name']
+            buttons.append(Button(name, screen_width - 270, 240 + i * 32, small_font, WHITE, (77, 132, 168), db_level_click, static_w=200, static_h=32))
 
 
 mongo_client = MongoClient()
 mongo_client.start()
 ################################
+
 
 ################################
 # sounds
@@ -60,21 +71,13 @@ for i in range(6):
 
 ################################
 
+
 ################################
 # fonts
 large_font = pygame.font.SysFont("comicsansms", 50)
 medium_font = pygame.font.Font('freesansbold.ttf', 32)
 small_font = pygame.font.Font('freesansbold.ttf', 23)
-
-
 #################################
-
-
-class Direction(Enum):
-    UP = 1
-    DOWN = 2
-    LEFT = 3
-    RIGHT = 4
 
 
 class Tank:
@@ -255,23 +258,12 @@ def drawhealthbar(x, y, w, h, value, max_value, fill_bg):
     pygame.draw.rect(screen, (col[0] * 255, col[1] * 255, col[2] * 255), (x, y, int(w * (value / max_value)), h), 0)
 
 
-def get_from_DB(name):
-    request = col.find_one({'name': name})
-    if request is None:
-        output = []
-        print('Level Not Found')
-    else:
-        output = request['level']
-    return output
-
-
 def read_level(level=[]):
     temp_list = ""
     if level == []:
         with open(if_no_level, 'r+', encoding='utf-8') as map:
             for i in map:
                 temp_list += i.strip()
-
     level_width_in_tiles = screen_width // 32
     j = 0
 
@@ -280,32 +272,25 @@ def read_level(level=[]):
             temp_list += h.strip()
 
     for i in range(len(temp_list)):
-
         if i % level_width_in_tiles == 0 and i != 0:
             j += 1
-
         if temp_list[i] == "#":
             walls.append(Wall((i % level_width_in_tiles) * 32, j * 32, 32, True))
         elif temp_list[i] == "@":
             walls.append(Wall((i % level_width_in_tiles) * 32, j * 32, 32, False))
 
 
-level_names = []
-walls = []
-
-
-def get_local_levels():
+def get_local_levels_names():
+    level_names = []
     x = os.scandir(os.getcwd() + '/assets/levels')
     for i in x:
         if i.name[-4:] == '.txt':
             level_names.append(i.name[:-4])
+    return level_names
 
 
-get_local_levels()
-print(level_names)
-level = []  # get_from_DB('Pac-Man')
-if_no_level = 'assets/levels/2_level.txt'
-read_level(level)
+level_names = get_local_levels_names()
+
 main_menu = True
 mainloop = True
 
@@ -319,34 +304,30 @@ BLACK = (0, 0, 0)
 img_width, img_height = tank_base_0.get_rect().width, tank_base_0.get_rect().height
 
 
-def create_button(text, button_x, button_y, font, txt_col, colour, static_w=0, static_h=0, color_per=(74, 72, 70)):
-    global screen
-
-    txt = font.render(str(text), True, txt_col)
-    x, y, w, h = txt.get_rect()
-
-    if static_w and static_h:
-        pygame.draw.rect(screen, colour, (button_x, button_y, static_w, static_h))
-        pygame.draw.rect(screen, color_per, (button_x, button_y, static_w, static_h), 2)
-        screen.blit(txt, (int(button_x + static_w // 2 - w // 2), int(button_y + 2 + static_h // 2 - h // 2)))
-    elif static_w:
-        pygame.draw.rect(screen, colour, (button_x, button_y, static_w, h + 4))
-        pygame.draw.rect(screen, color_per, (button_x, button_y, static_w, h + 4), 2)
-        screen.blit(txt, (int(button_x + static_w // 2 - w // 2), int(button_y + 2)))
-    elif static_h:
-        pygame.draw.rect(screen, colour, (button_x, button_y, w + 2, static_h))
-        pygame.draw.rect(screen, color_per, (button_x, button_y, w + 2, static_h), 2)
-        screen.blit(txt, (int(button_x + 2), int(button_y + 2 + static_h // 2 - h // 2)))
-    else:
-        pygame.draw.rect(screen, colour, (button_x, button_y, w + 4, h + 4))
-        pygame.draw.rect(screen, color_per, (button_x, button_y, w + 4, h + 4), 2)
-        screen.blit(txt, (int(button_x + 2), int(button_y + 2)))
-
-
 def create_colour(h):
     colour = colorsys.hsv_to_rgb(h / 360, 1.0, 1.0)
     return colour[0] * 255, colour[1] * 255, colour[2] * 255
 
+
+def function(button_name, cur_level):
+    global if_no_level, selected_level
+    selected_level = button_name
+    if_no_level = f'assets/levels/{button_name}.txt'
+    #print(button_name)
+
+
+for i in range(len(level_names)):
+    buttons.append(Button(level_names[i], 50, 240 + i * 32, small_font, WHITE, (77, 132, 168), function, 200, 32))
+
+
+def play_button(q, cur_level):
+    if cur_level == "Nothing":
+        return
+    global main_menu
+    main_menu = False
+
+
+buttons.append(Button('Play', screen_width//2-65, screen_height-100, medium_font, WHITE, GREEN, play_button, 120, 70))
 
 while main_menu:
     screen.fill(BLACK)
@@ -368,6 +349,13 @@ while main_menu:
             if event.key == pygame.K_ESCAPE:
                 main_menu = False
 
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pos = pygame.mouse.get_pos()
+            for button in buttons:
+                if button.button_x <= pos[0] <= button.button_x + button.button_w and (
+                        button.button_y <= pos[1] <= button.button_y + button.button_h):
+                    button.run(button.text, selected_level)
+
     # Pick color Text
     txt = large_font.render('Pick your colour', True, WHITE)
     screen.blit(txt, (screen_width // 2 - txt.get_rect().width // 2, 10))
@@ -383,10 +371,6 @@ while main_menu:
         if 28 <= pos[0] <= 28 + 3 * 180 and 120 <= pos[1] <= 145:
             h = (pos[0] - 28) / 1.5
             TANK_COL = create_colour(h)
-        # play , , 120, 70
-        if screen_width // 2 - 40 <= pos[0] <= screen_width // 2 + 80 and screen_height - 100 <= pos[
-            1] <= screen_height - 30:
-            main_menu = False
 
     txt = medium_font.render('Choose map', True, WHITE)
     screen.blit(txt, (screen_width // 2 - txt.get_rect().width // 2, 160))
@@ -395,29 +379,25 @@ while main_menu:
     txt = medium_font.render('Local levels:', True, WHITE)
     screen.blit(txt, (70, 200))
 
+    # level Name
+    txt = medium_font.render(selected_level, True, WHITE)
+    screen.blit(txt, (screen_width//2 - txt.get_rect().width//2, screen_height - 200))
+
     # Database lvl
     txt = medium_font.render('Database levels:', True, WHITE)
     screen.blit(txt, (screen_width - txt.get_rect().width - 30, 200))
 
-    for i in range(len(level_names)):
-        create_button(level_names[i], 50, 240 + i * 29, small_font, WHITE, (77, 132, 168), static_w=200)
+    for button in buttons:
+        button.draw()
 
-    if mongo_client.levels:
-        for i in range(len(mongo_client.levels)):
-            name = mongo_client.levels[i]['name']
-            create_button(name, screen_width - 270, 240 + i * 29, small_font, WHITE, (77, 132, 168), static_w=200)
-
-    # Play
-    create_button('Play', screen_width // 2 - 40, screen_height - 100, medium_font, WHITE, GREEN, static_w=120,
-                  static_h=70)
     pygame.display.flip()
-
 
 tank1 = Tank(500, 500, 100, 5, TANK_COL, 200, 10, fire=pygame.K_SPACE)
 tank2 = Tank(100, 100, 100, 5, (33, 196, 22), 200, 5, pygame.K_d, pygame.K_a, pygame.K_w, pygame.K_s, pygame.K_f)
 tank3 = Tank(200, 200, 100, 5, (88, 86, 176), 200, 3, pygame.K_l, pygame.K_j, pygame.K_i, pygame.K_k, pygame.K_u)
 tanks = [tank1, tank2, tank3]
-
+if mainloop:
+    read_level(level)
 
 while mainloop:
     screen.fill((255, 255, 255))
