@@ -12,6 +12,7 @@ FPS = 60
 buttons = []
 level = []
 walls = []
+tanks = []
 if_no_level = ""
 selected_level = "Nothing"
 pygame.display.set_caption("Пажылые танки")
@@ -45,6 +46,7 @@ def db_level_click(name, cur_level):
 class MongoClient(Thread):
     def run(self):
         self.levels = []
+        self.bool = False
         client = pymongo.MongoClient(
             "mongodb+srv://Player:guest@cluster0-mhy2m.mongodb.net/test?retryWrites=true&w=majority")
         db = client['TonksDB']
@@ -56,6 +58,8 @@ class MongoClient(Thread):
         for i in range(len(mongo_client.levels)):
             name = mongo_client.levels[i]['name']
             buttons.append(Button(name, screen_width - 270, 240 + i * 32, small_font, WHITE, (77, 132, 168), db_level_click, static_w=200, static_h=32))
+
+        self.bool = True
 
 
 mongo_client = MongoClient()
@@ -259,6 +263,7 @@ def drawhealthbar(x, y, w, h, value, max_value, fill_bg):
 
 
 def read_level(level=[]):
+    global tanks, walls, TANK_COL
     temp_list = ""
     if level == []:
         with open(if_no_level, 'r+', encoding='utf-8') as map:
@@ -274,10 +279,24 @@ def read_level(level=[]):
     for i in range(len(temp_list)):
         if i % level_width_in_tiles == 0 and i != 0:
             j += 1
+        x = (i % level_width_in_tiles) * 32
+        y = j * 32
         if temp_list[i] == "#":
-            walls.append(Wall((i % level_width_in_tiles) * 32, j * 32, 32, True))
+            walls.append(Wall(x, y, 32, True))
         elif temp_list[i] == "@":
-            walls.append(Wall((i % level_width_in_tiles) * 32, j * 32, 32, False))
+            walls.append(Wall(x, y, 32, False))
+        elif temp_list[i] == '1':
+            tanks.append(Tank(x, y, 100, 5, TANK_COL, 200, 5, fire=pygame.K_SPACE))
+        elif temp_list[i] == '2':
+            tanks.append(Tank(x, y, 100, 5, (33, 196, 22), 200, 5, pygame.K_d, pygame.K_a, pygame.K_w, pygame.K_s, pygame.K_f))
+        elif temp_list[i] == '3':
+            tanks.append(Tank(x, y, 100, 5, (88, 86, 176), 200, 5, pygame.K_l, pygame.K_j, pygame.K_i, pygame.K_k, pygame.K_u))
+        elif temp_list[i] == '4':
+            tanks.append(Tank(x, y, 100, 5, (51, 238, 245), 200, 5, pygame.K_KP6, pygame.K_KP4, pygame.K_KP8, pygame.K_KP5, pygame.K_KP0))
+
+    if len(tanks) == 0:
+        tanks.append(Tank(random.randint(0, screen_width), random.randint(0, screen_height), 100, 5, TANK_COL, 200, 5, fire=pygame.K_SPACE))
+        tanks.append(Tank(random.randint(0, screen_width), random.randint(0, screen_height), 100, 5, (33, 196, 22), 200, 5, pygame.K_d, pygame.K_a, pygame.K_w, pygame.K_s, pygame.K_f))
 
 
 def get_local_levels_names():
@@ -300,6 +319,7 @@ GREEN = (60, 255, 90)
 TANK_COL = (60, 255, 90)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
+YELLOW = (219, 216, 24)
 
 img_width, img_height = tank_base_0.get_rect().width, tank_base_0.get_rect().height
 
@@ -328,7 +348,7 @@ def play_button(q, cur_level):
 
 
 buttons.append(Button('Play', screen_width//2-65, screen_height-100, medium_font, WHITE, GREEN, play_button, 120, 70))
-
+loadtime = 0
 while main_menu:
     screen.fill(BLACK)
     milliseconds = clock.tick(FPS)
@@ -387,15 +407,32 @@ while main_menu:
     txt = medium_font.render('Database levels:', True, WHITE)
     screen.blit(txt, (screen_width - txt.get_rect().width - 30, 200))
 
+    # Loading
+    if not mongo_client.bool:
+        loadtime += milliseconds / 1000
+        load_text = 'Loading'
+        if int(loadtime) % 4 == 0:
+            load_text = 'Loading.'
+        if int(loadtime) % 4 == 1:
+            load_text = 'Loading..'
+        if int(loadtime) % 4 == 2:
+            load_text = 'Loading...'
+        if int(loadtime) % 4 == 3:
+            load_text = 'Loading....'
+
+        txt = medium_font.render(load_text, True, YELLOW)
+        screen.blit(txt, (screen_width - 250, 270))
+
     for button in buttons:
         button.draw()
 
     pygame.display.flip()
 
-tank1 = Tank(500, 500, 100, 5, TANK_COL, 200, 10, fire=pygame.K_SPACE)
-tank2 = Tank(100, 100, 100, 5, (33, 196, 22), 200, 5, pygame.K_d, pygame.K_a, pygame.K_w, pygame.K_s, pygame.K_f)
-tank3 = Tank(200, 200, 100, 5, (88, 86, 176), 200, 3, pygame.K_l, pygame.K_j, pygame.K_i, pygame.K_k, pygame.K_u)
-tanks = [tank1, tank2, tank3]
+# tank1 = Tank(500, 500, 100, 5, TANK_COL, 200, 10, fire=pygame.K_SPACE)
+# tank2 = Tank(100, 100, 100, 5, (33, 196, 22), 200, 5, pygame.K_d, pygame.K_a, pygame.K_w, pygame.K_s, pygame.K_f)
+# tank3 = Tank(200, 200, 100, 5, (88, 86, 176), 200, 3, pygame.K_l, pygame.K_j, pygame.K_i, pygame.K_k, pygame.K_u)
+# tanks.append(tank1)
+
 if mainloop:
     read_level(level)
 
@@ -439,7 +476,7 @@ while mainloop:
                 mainloop = False
 
             for tank in tanks:
-                if event.key in tank.KEY.keys():
+                if event.key in tank.KEY:
                     tank.change_direction(tank.KEY[event.key])
                 if event.key == tank.fire_key:
                     tank.fire()
